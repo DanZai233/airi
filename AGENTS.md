@@ -151,3 +151,22 @@ Concise but detailed reference for contributors working across the `moeru-ai/air
 - Maintain structured `README.md` documentation for each `packages/` and `apps/` entry, covering what it does, how to use it, when to use it, and when not to use it.
 - Always run `pnpm typecheck` and `pnpm lint:fix` after finishing a task.
 - Use Conventional Commits for commit messages (e.g., `feat: add runner reconnect backoff`).
+
+## Cursor Cloud specific instructions
+
+### Services overview
+
+| Service | Command | Notes |
+|---|---|---|
+| **stage-web** (primary) | `pnpm dev:web` | Vite dev server on port 5173. No external deps needed for frontend-only dev. |
+| **stage-tamagotchi** | `pnpm dev:tamagotchi` | Electron app; requires a display (not available in headless Cloud VMs). |
+| **Tests** | `pnpm test:run` | Runs all Vitest suites (~30 files). Some tests skip when LLM API keys are absent. |
+| **Lint** | `pnpm lint` / `pnpm lint:fix` | Uses `moeru-lint` (ESLint wrapper). |
+
+### Gotchas
+
+- `.tool-versions` pins Node.js 24; the update script installs it via nvm. If nvm is not sourced, run `. "$NVM_DIR/nvm.sh"` first.
+- `pnpm install` triggers `postinstall` which runs `build:packages` via turbo. This downloads Cubism SDK + Live2D/VRM assets on the first Vite dev start (cached afterwards). The first `pnpm dev:web` may take ~30 s extra for asset downloads.
+- The web app works fully in-browser without a backend server. Chat requires an LLM provider API key configured in Settings > Providers.
+- `pnpm lint` uses `moeru-lint` (a custom ESLint wrapper from `@moeru/eslint-config`); it is **not** plain `eslint`.
+- Git hooks use `simple-git-hooks` + `nano-staged` (runs `moeru-lint --fix` on staged files). These are installed during `pnpm install` via `postinstall`.
