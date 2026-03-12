@@ -170,3 +170,11 @@ Concise but detailed reference for contributors working across the `moeru-ai/air
 - The web app works fully in-browser without a backend server. Chat requires an LLM provider API key configured in Settings > Providers.
 - `pnpm lint` uses `moeru-lint` (a custom ESLint wrapper from `@moeru/eslint-config`); it is **not** plain `eslint`.
 - Git hooks use `simple-git-hooks` + `nano-staged` (runs `moeru-lint --fix` on staged files). These are installed during `pnpm install` via `postinstall`.
+
+### Provider configuration notes
+
+- **Speech provider settings pages** live in `packages/stage-pages/src/pages/settings/providers/speech/`. File-based routing via `unplugin-vue-router`; the filename becomes the route (e.g. `fish-audio.vue` → `/settings/providers/speech/fish-audio`).
+- **Chat provider settings pages** use `packages/stage-pages/src/pages/settings/providers/chat/[providerId].vue` (dynamic route) for providers defined in `packages/stage-ui/src/libs/providers/providers/`.
+- Provider credentials are stored in localStorage under `settings/credentials/providers`. The consciousness module's active provider/model are at `settings/consciousness/active-provider` and `settings/consciousness/active-model`.
+- Some LLM APIs (e.g. Volcengine Ark) have browser-side validation issues in Cloud VMs due to how CORS preflight / streaming SSE works. The API may work fine from server-side (curl) but fail from the browser. Use "Continue Anyway" on the validation screen to bypass, then set the model via the consciousness module page or localStorage.
+- Fish Audio voice browser (`packages/stage-pages/src/pages/settings/providers/speech/fish-audio.vue`) calls `searchFishAudioVoices()` from `packages/stage-ui/src/stores/providers/fish-audio/index.ts`. The search supports pagination, title search, language filter, tag filter, and sort options via the GET `/model` endpoint.
