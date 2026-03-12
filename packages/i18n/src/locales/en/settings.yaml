@@ -820,7 +820,7 @@ pages:
               description: TTS model to use (s2-pro recommended)
             reference-id:
               label: Voice Reference ID
-              description: Voice model ID from Fish Audio library or your custom models
+              description: Voice model ID from Fish Audio library, or browse & select below
               placeholder: Enter voice model ID...
             format:
               label: Audio Format
@@ -831,6 +831,17 @@ pages:
             top-p:
               label: Top P
               description: Controls diversity via nucleus sampling (0-1)
+        voice-browser:
+          title: Voice Browser
+          search-placeholder: Search voices by name...
+          loading: Searching voices...
+          no-results: No voices found. Try a different search term.
+          api-key-required: Enter your API key above to browse voices.
+          total-voices: voices total
+          sort:
+            score: Popular
+            task-count: Most Used
+            created-at: Newest
       xai:
         description: x.ai
         title: xAI

@@ -1334,13 +1334,14 @@ export const useProvidersStore = defineStore('providers', () => {
         },
         listVoices: async (config) => {
           const { listFishAudioVoices } = await import('./providers/fish-audio')
-          const voices = await listFishAudioVoices((config.apiKey as string).trim(), (config.baseUrl as string).trim())
+          const voices = await listFishAudioVoices((config.apiKey as string).trim(), (config.baseUrl as string)?.trim())
 
-          return voices.map((voice) => ({
+          return voices.map(voice => ({
             id: voice.id,
             name: voice.title,
             provider: 'fish-audio',
             description: voice.description,
+            languages: (voice.languages || []).map(l => ({ code: l, title: l })),
           }))
         },
       },

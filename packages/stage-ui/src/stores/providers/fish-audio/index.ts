@@ -17,12 +17,33 @@ export interface FishAudioVoiceInfo {
   id: string
   title: string
   description?: string
+  coverImage?: string
   tags?: string[]
+  languages?: string[]
+  taskCount?: number
+  likeCount?: number
   author?: {
     id: string
     name: string
     avatar_url?: string
   }
+  samples?: { url: string, text?: string }[]
+}
+
+export interface FishAudioSearchParams {
+  pageSize?: number
+  pageNumber?: number
+  title?: string
+  tag?: string | string[]
+  language?: string | string[]
+  self?: boolean
+  authorId?: string
+  sortBy?: 'score' | 'task_count' | 'created_at'
+}
+
+export interface FishAudioSearchResult {
+  total: number
+  items: FishAudioVoiceInfo[]
 }
 
 export function createFishAudioProvider(config: FishAudioConfig): SpeechProvider {
@@ -33,9 +54,7 @@ export function createFishAudioProvider(config: FishAudioConfig): SpeechProvider
       baseURL: baseUrl,
       model: config.model || 's2-pro',
       voice: config.referenceId,
-      fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
-        const url = typeof input === 'string' ? input : (input as URL).toString()
-
+      fetch: async (_input: RequestInfo | URL, init?: RequestInit) => {
         if (!init?.body || typeof init.body !== 'string') {
           throw new Error('Request body is required')
         }
@@ -76,53 +95,94 @@ export function createFishAudioProvider(config: FishAudioConfig): SpeechProvider
   }
 }
 
-export async function listFishAudioModels(apiKey: string, baseUrl?: string): Promise<FishAudioVoiceInfo[]> {
-  const url = baseUrl?.endsWith('/') ? baseUrl : baseUrl ? `${baseUrl}/` : FISH_AUDIO_BASE_URL
-
-  const response = await fetch(`${url}model`, {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-    },
-  })
-
-  if (!response.ok) {
-    throw new Error(`Failed to list Fish Audio models: ${response.status} ${response.statusText}`)
-  }
-
-  const data = await response.json()
-  return data
+function resolveBaseUrl(baseUrl?: string): string {
+  return baseUrl?.endsWith('/') ? baseUrl : baseUrl ? `${baseUrl}/` : FISH_AUDIO_BASE_URL
 }
 
-export async function listFishAudioVoices(apiKey: string, baseUrl?: string): Promise<FishAudioVoiceInfo[]> {
-  const url = baseUrl?.endsWith('/') ? baseUrl : baseUrl ? `${baseUrl}/` : FISH_AUDIO_BASE_URL
-
-  const response = await fetch(`${url}model`, {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-    },
-  })
-
-  if (!response.ok) {
-    throw new Error(`Failed to list Fish Audio voices: ${response.status} ${response.statusText}`)
-  }
-
-  const data = await response.json()
-
-  if (!Array.isArray(data)) {
-    return []
-  }
-
-  return data.map((model: any) => ({
+function mapModelEntity(model: any): FishAudioVoiceInfo {
+  return {
     id: model._id || model.id,
     title: model.title || model.name || model._id || model.id,
     description: model.description || '',
+    coverImage: model.cover_image || undefined,
     tags: model.tags || [],
-    author: model.author ? {
-      id: model.author._id || model.author.id,
-      name: model.author.name || model.author.username || '',
-      avatar_url: model.author.avatar_url || model.author.avatarUrl,
-    } : undefined,
-  }))
+    languages: model.languages || [],
+    taskCount: model.task_count,
+    likeCount: model.like_count,
+    author: model.author
+      ? {
+          id: model.author._id || model.author.id,
+          name: model.author.name || model.author.username || '',
+          avatar_url: model.author.avatar_url || model.author.avatarUrl,
+        }
+      : undefined,
+    samples: Array.isArray(model.samples)
+      ? model.samples.map((s: any) => ({ url: s.url, text: s.text }))
+      : undefined,
+  }
+}
+
+/**
+ * Search / list Fish Audio voice models with pagination and filters.
+ * Uses GET /model with query parameters per the Fish Audio API.
+ */
+export async function searchFishAudioVoices(
+  apiKey: string,
+  params: FishAudioSearchParams = {},
+  baseUrl?: string,
+): Promise<FishAudioSearchResult> {
+  const url = resolveBaseUrl(baseUrl)
+
+  const query = new URLSearchParams()
+  if (params.pageSize != null)
+    query.set('page_size', String(params.pageSize))
+  if (params.pageNumber != null)
+    query.set('page_number', String(params.pageNumber))
+  if (params.title)
+    query.set('title', params.title)
+  if (params.self != null)
+    query.set('self', String(params.self))
+  if (params.authorId)
+    query.set('author_id', params.authorId)
+  if (params.sortBy)
+    query.set('sort_by', params.sortBy)
+
+  const tags = Array.isArray(params.tag) ? params.tag : params.tag ? [params.tag] : []
+  for (const t of tags)
+    query.append('tag', t)
+
+  const langs = Array.isArray(params.language) ? params.language : params.language ? [params.language] : []
+  for (const l of langs)
+    query.append('language', l)
+
+  const qs = query.toString()
+  const endpoint = `${url}model${qs ? `?${qs}` : ''}`
+
+  const response = await fetch(endpoint, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${apiKey}` },
+  })
+
+  if (!response.ok) {
+    throw new Error(`Fish Audio API error: ${response.status} ${response.statusText}`)
+  }
+
+  const data = await response.json()
+
+  if (Array.isArray(data)) {
+    return { total: data.length, items: data.map(mapModelEntity) }
+  }
+
+  return {
+    total: data.total ?? 0,
+    items: Array.isArray(data.items) ? data.items.map(mapModelEntity) : [],
+  }
+}
+
+export async function listFishAudioVoices(
+  apiKey: string,
+  baseUrl?: string,
+): Promise<FishAudioVoiceInfo[]> {
+  const result = await searchFishAudioVoices(apiKey, { pageSize: 20 }, baseUrl)
+  return result.items
 }
