@@ -775,11 +775,22 @@ pages:
               description: 要使用的 TTS 模型（推薦 s2-pro）
             reference-id:
               label: 聲音引用 ID
-              description: Fish Audio 聲音庫中的聲音模型 ID 或您的自訂模型
+              description: Fish Audio 聲音庫中的聲音模型 ID，或在下方瀏覽選擇
               placeholder: 輸入聲音模型 ID...
             format:
               label: 音訊格式
               description: 輸出音訊格式
+        voice-browser:
+          title: 音色瀏覽器
+          search-placeholder: 搜尋音色名稱...
+          loading: 正在搜尋音色...
+          no-results: 未找到音色，請嘗試其他搜尋詞。
+          api-key-required: 請先在上方輸入 API Key 以瀏覽音色。
+          total-voices: 個音色
+          sort:
+            score: 熱門
+            task-count: 最多使用
+            created-at: 最新
       xai:
         description: X.AI
         title: xAI
